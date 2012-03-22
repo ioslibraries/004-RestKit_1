@@ -7,6 +7,8 @@
 //
 
 #import "ILAppDelegate.h"
+#import "ILEpisodesViewController.h"
+#import "Episode.h"
 
 @implementation ILAppDelegate
 
@@ -14,6 +16,7 @@
 @synthesize managedObjectContext = __managedObjectContext;
 @synthesize managedObjectModel = __managedObjectModel;
 @synthesize persistentStoreCoordinator = __persistentStoreCoordinator;
+@synthesize navController;
 
 - (void)dealloc
 {
@@ -21,13 +24,40 @@
     [__managedObjectContext release];
     [__managedObjectModel release];
     [__persistentStoreCoordinator release];
+    [navController release];
+    
     [super dealloc];
 }
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
+    
+    RKClient* client = [RKClient clientWithBaseURL:@"http://ioslibraries.com"];
+    RKLogConfigureByName("RestKit/Network", RKLogLevelDebug);
+    RKLogInfo(@"Configured RKClient: %@", client);
+        
+    RKObjectManager* objectManager = [RKObjectManager objectManagerWithBaseURL:@"http://ioslibs.heroku.com"];
+    
+    // Enable automatic network activity indicator management
+    [RKRequestQueue sharedQueue].showsNetworkActivityIndicatorWhenBusy = YES;
+    
+    // Setup our object mappings
+    RKObjectMapping* episodeMapping = [RKObjectMapping mappingForClass:[Episode class]];
+    [episodeMapping mapKeyPath:@"name" toAttribute:@"name"];
+    [episodeMapping mapKeyPath:@"notes" toAttribute:@"body"];
+    [episodeMapping mapKeyPath:@"published_at" toAttribute:@"published_at"];
+    [episodeMapping mapKeyPath:@"video_url" toAttribute:@"video_url"];
+    
+    [objectManager.mappingProvider setMapping:episodeMapping forKeyPath:@""];
+    
+    
     self.window = [[[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]] autorelease];
-    // Override point for customization after application launch.
+    
+    ILEpisodesViewController* viewController = [[[ILEpisodesViewController alloc] initWithNibName:@"ILEpisodesViewController" bundle:nil] autorelease];
+    
+    self.navController = [[[UINavigationController alloc] initWithRootViewController:viewController] autorelease];
+    [self.window setRootViewController:self.navController];
+    
     self.window.backgroundColor = [UIColor whiteColor];
     [self.window makeKeyAndVisible];
     return YES;
